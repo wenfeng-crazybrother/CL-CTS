@@ -4,18 +4,32 @@ set -e
 
 export TOP=$(pwd)
 
+TOOLCHAIN_URL_arm="https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz"
+TOOLCHAIN_URL_aarch64="https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz"
+
+TOOLCHAIN_PREFIX_arm=arm-linux-gnueabihf
+TOOLCHAIN_PREFIX_aarch64=aarch64-linux-gnu
+
 TOOLCHAIN_FILE=${TOP}/toolchain.cmake
+touch ${TOOLCHAIN_FILE}
 
 # Prepare arm toolchain if needed
-if [[ ${JOB_ARCHITECTURE} == arm ]]; then
-    wget https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
-    tar xvf gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
-    export PATH=${TOP}/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin:${PATH}
+if [[ ${JOB_ARCHITECTURE} != "" ]]; then
+    TOOLCHAIN_URL_VAR=TOOLCHAIN_URL_${JOB_ARCHITECTURE}
+    TOOLCHAIN_URL=${!TOOLCHAIN_URL_VAR}
+    wget ${TOOLCHAIN_URL}
+    TOOLCHAIN_ARCHIVE=${TOOLCHAIN_URL##*/}
+    tar xvf ${TOOLCHAIN_ARCHIVE}
+    TOOLCHAIN_DIR=${TOP}/${TOOLCHAIN_ARCHIVE%.tar.xz}
+    export PATH=${TOOLCHAIN_DIR}}/bin:${PATH}
+
+    TOOLCHAIN_PREFIX_VAR=TOOLCHAIN_PREFIX_${JOB_ARCHITECTURE}
+    TOOLCHAIN_PREFIX=${!TOOLCHAIN_PREFIX_VAR}
 
     echo "SET(CMAKE_SYSTEM_NAME Linux)" >> ${TOOLCHAIN_FILE}
-    echo "SET(CMAKE_SYSTEM_PROCESSOR arm)" >> ${TOOLCHAIN_FILE}
-    echo "SET(CMAKE_C_COMPILER   arm-linux-gnueabihf-gcc)" >> ${TOOLCHAIN_FILE}
-    echo "SET(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)" >> ${TOOLCHAIN_FILE}
+    echo "SET(CMAKE_SYSTEM_PROCESSOR ${JOB_ARCHITECTURE})" >> ${TOOLCHAIN_FILE}
+    echo "SET(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}-gcc)" >> ${TOOLCHAIN_FILE}
+    echo "SET(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)" >> ${TOOLCHAIN_FILE}
     echo "SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)" >> ${TOOLCHAIN_FILE}
     echo "SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)" >> ${TOOLCHAIN_FILE}
     echo "SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)" >> ${TOOLCHAIN_FILE}
